@@ -1,0 +1,23 @@
+/r System.Core.dll
+// /r System.Xml.dll
+// /r System.Data.dll
+// /n System.Linq
+/n System.Collections.Generic
+/n System.IO
+/n System.Text.RegularExpressions
+/n System.Text
+/n System.Reflection
+// /n System.Diagnostics
+#def FOR(i,n) for(int i = 0; i < (n); i++)
+#def print(x) Print(x)
+#def P(x) Print(x)
+#def PL(x) Printl(x)
+#def sin Math.Sin
+#def cos Math.Cos
+#def M(klass) MInfo(typeof(klass),null)
+#def MI(method) MInfo(null, #method)
+#def clear CSharpInterpreter.Current.ClearOutput()
+#def hide CSharpInterpreter.Current.Invoke(delegate () { CSharpInterpreter.Current.showInteractiveGUI = false; })
+#def exit CSharpInterpreter.Current.Invoke(delegate () { CSharpInterpreter.Current.enabled = false; })
+#def quit UnityEngine.Application.Quit()
+#def pwd(x) Directory.GetCurrentDirectory()

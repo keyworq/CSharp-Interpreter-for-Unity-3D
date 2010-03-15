@@ -1,0 +1,11 @@
+.svn
+/*.csproj
+/*.pidb
+/*.sln
+/*.suo
+/*.unityproj
+/*.user
+/*.userprefs
+/[Ll]ibrary/
+/[Oo]bj/
+/[Tt]emp/
