@@ -40,7 +40,7 @@ using UnityEngine;
 ////[ExecuteInEditMode]
 public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
 {
-    public const string Version = "0.8.22.5";
+    public const string Version = "0.8.22.6";
 
     private const string PromptStart = ">>>";
     private const string PromptExtra = "...";
@@ -1387,7 +1387,7 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
         }
     }
 
-    void CSI.IConsole.Write(string s)
+    string CSI.IConsole.Write(string s)
     {
         this.outputStringBuilder.Append(s);
         this.EnforceParameterLimits();
@@ -1398,6 +1398,7 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
         }
 
         this.outputText = this.outputStringBuilder.ToString().TrimEnd();
+        return s;
     }
 
     int CSI.IConsole.GetLineWidth()

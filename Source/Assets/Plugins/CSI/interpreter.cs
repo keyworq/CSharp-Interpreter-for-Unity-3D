@@ -42,7 +42,7 @@ namespace CSI
     public interface IConsole
     {
         void ReadLineAsync(Interpreter.InputHandler callback);
-        void Write(string s);
+        string Write(string s);
         int GetLineWidth();
         int GetMaxLines();
     }
@@ -752,7 +752,7 @@ namespace CSI
             }
             // Find try to find a public class-type
             Type pubType = symType;
-            while ((pubType != null) && (!pubType.IsPublic))
+            while ((pubType != null) && (!pubType.IsPublic) && (!pubType.IsNestedPublic))
             {
                 pubType = pubType.BaseType;
             }
@@ -786,7 +786,7 @@ namespace CSI
                     while (interfaceIndex < interfaceTypes.Count)
                     {
                         Type interfaceType = interfaceTypes[interfaceIndex++];
-                        if (interfaceType.IsPublic)
+                        if (interfaceType.IsPublic || interfaceType.IsNestedPublic)
                         {
                             pubType = interfaceType;
                             break;
@@ -901,6 +901,7 @@ namespace CSI
             return symTypeName;
         }
 
+        static Regex quoteRegex = new Regex(@"^""|[^\\]""");
         static Regex dollarWord = new Regex(@"\$(?:\w+|\{[^\{\}\r\n\t\f\v""]+\})");
         static Regex dollarAssignment = new Regex(@"\$(?:\w+|\{[^\{\}\r\n\t\f\v""]+\})\s*=[^=]");
         static Regex plainWord = new Regex(@"\b[a-zA-Z_]\w*");
@@ -925,7 +926,7 @@ namespace CSI
             {
                 Match m = wordArray[i];
                 // exclude matches found inside strings
-                if (m.Index > 0 && s.LastIndexOf('"', m.Index - 1, m.Index) != -1 && s.IndexOf('"', m.Index) != -1)
+                if (m.Index > 0 && (quoteRegex.Matches(s.Substring(0, m.Index)).Count % 2) != 0 && (quoteRegex.Matches(s.Substring(m.Index)).Count % 2) != 0)
                     continue;
                 string sym = m.Value;
                 if (!mustDeclare)     // strip the '$'
