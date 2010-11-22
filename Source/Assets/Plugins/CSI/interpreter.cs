@@ -583,7 +583,22 @@ namespace CSI
                 AddNamespace(localNamespace);
             }
 
-            prov = new CSharpCodeProvider();
+            ConstructorInfo constructorInfo = typeof(CSharpCodeProvider).GetConstructor(
+                new Type[] { typeof(System.Collections.Generic.Dictionary<string, string>) });
+            if (constructorInfo == null)
+            {
+                prov = new CSharpCodeProvider();
+            }
+            else
+            {
+                System.Collections.Generic.Dictionary<string, string> providerOptions = 
+                    new System.Collections.Generic.Dictionary<string, string>();
+                providerOptions.Add(
+                    "CompilerVersion", 
+                    (Environment.Version < new Version("4.0.0.0")) ? "v3.5" : "v4.0");
+                prov = (CSharpCodeProvider)constructorInfo.Invoke(new object[] { providerOptions });
+            }
+
             using (StringWriter stringWriter = new StringWriter())
             {
                 gen = prov.CreateGenerator(stringWriter);
@@ -1065,9 +1080,48 @@ namespace CSI
                     // Try it again, without assignment to $_
                     returnsValue = false;
                     cp.OutputAssembly = null;  // Reset value, which is needed for Mono to work
-                    cr = CompileTemplate(cp, codeStr, CHash.Expression, "");
-                    if (!cr.Errors.HasErrors)
-                        return cr;
+                    CompilerResults cr2 = CompileTemplate(cp, codeStr, CHash.Expression, "");
+                    if (!cr2.Errors.HasErrors)
+                        return cr2;
+                    try
+                    {
+                        bool firstErrorIsTypeConversion = false;
+                        foreach (CompilerError err in cr.Errors)
+                        {
+                            // Check for "Cannot implicitly convert type `void' to `object'"
+                            if (string.Equals("CS0029", err.ErrorNumber, StringComparison.OrdinalIgnoreCase)
+                                && (!string.IsNullOrEmpty(err.ErrorText))
+                                && (err.ErrorText.IndexOf("void", 0, StringComparison.OrdinalIgnoreCase) >= 0))
+                            {
+                                firstErrorIsTypeConversion = true;
+                                break;
+                            }
+                        }
+                        
+                        bool secondErrorIsTooCommon = false;
+                        foreach (CompilerError err in cr2.Errors)
+                        {
+                            // Check for "Only assignment, call, increment, decrement, and new object expressions can be used as a statement"
+                            if (string.Equals("CS0201", err.ErrorNumber, StringComparison.OrdinalIgnoreCase))
+                            {
+                                secondErrorIsTooCommon = true;
+                                break;
+                            }
+                        }
+                        
+                        // Usually show the second error, unless it is not very 
+                        // informative and the first error is unlikely to have 
+                        // been caused by our editing of the expression string
+                        if ((!secondErrorIsTooCommon) || (firstErrorIsTypeConversion))
+                        {
+                            cr = cr2;
+                        }
+                    }
+                    catch
+                    {
+                        // Assume that most recent error is mostly appropriate
+                        cr = cr2;
+                    }
                 }
                 ShowErrors(cr, codeStr);
                 return null;
@@ -1111,7 +1165,10 @@ namespace CSI
             sbErr.AppendFormat("'{0}'\n\n", codeStr);
             foreach (CompilerError err in cr.Errors)
             {
-                sbErr.AppendFormat("{0}\n", err.ErrorText);
+                sbErr.AppendFormat(
+                    "{0}{1}\n", 
+                    (err.ErrorText ?? string.Empty).Trim(), 
+                    (string.IsNullOrEmpty(err.ErrorNumber) ? string.Empty : (" [" + err.ErrorNumber + "]")));
             }
             Utils.Print(sbErr.ToString());
         }

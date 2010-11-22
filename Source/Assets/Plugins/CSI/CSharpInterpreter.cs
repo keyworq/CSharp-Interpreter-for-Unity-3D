@@ -40,7 +40,7 @@ using UnityEngine;
 ////[ExecuteInEditMode]
 public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
 {
-    public const string Version = "0.8.22.6";
+    public const string Version = "0.8.24.3";
 
     private const string PromptStart = ">>>";
     private const string PromptExtra = "...";
@@ -234,28 +234,49 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
         string libraryPath = null;
         if (Application.isEditor)
         {
-            // For Editor: Located in project's "Library\ScriptAssemblies" directory
+            // For Editor: Seach project's "Library\ScriptAssemblies" directory
             libraryPath = Path.GetDirectoryName(
                 csharpEngine.FullExecutablePath());
         }
         else
         {
-            // For Player: Located in "<ApplicationName>_Data\lib" directory
+#if UNITY_2_6
+            // Unity 2.6.1 Player: Seach "<ApplicationName>_Data"
             libraryPath = Application.dataPath;
+#else  // i.e., 3.0 and greater
+            // Players of Unity 3.0.0 and 3.1.0: Seach "<ApplicationName>_Data\Managed"
+            try
+            {
+                libraryPath = Path.GetDirectoryName(GetFullPathOfAssembly(typeof(int).Assembly));
+            }
+            catch
+            {
+                libraryPath = Path.Combine(Application.dataPath ?? string.Empty, "Managed");
+            }
+#endif
         }
 
         try
         {
+            // Add DLLs from the project's "Library\ScriptAssemblies" directory
             if (!string.IsNullOrEmpty(libraryPath))
             {
                 foreach (string reference in
+#if UNITY_2_6
                     Directory.GetFiles(libraryPath, "Assembly - *.dll"))
+#else  // i.e., 3.0 and greater
+                    Directory.GetFiles(libraryPath, "Assembly-*.dll"))
+#endif
                 {
-                    // Add DLLs from the project's "Library\ScriptAssemblies" directory:
+                    // When using Unity 2.6.1 convention:
                     //  * "Assembly - CSharp.dll"
                     //  * "Assembly - CSharp - Editor.dll"
                     //  * "Assembly - CSharp - first pass.dll"
                     //  * "Assembly - UnityScript - first pass.dll"
+                    // When using Unity 3.0.0 and 3.1.0 convention:
+                    //  * "Assembly-CSharp.dll"
+                    //  * "Assembly-CSharp-firstpass.dll"
+                    //  * "Assembly-UnityScript-firstpass.dll"
                     csharpEngine.AddReference(reference);
                 }
             }
@@ -263,11 +284,12 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
             string includeFile = this.includeFile;
             if (!string.IsNullOrEmpty(includeFile))
             {
+                string cachedFilename = includeFile;
                 includeFile = ResolveFilename(includeFile);
                 if (!csharpEngine.ReadIncludeFile(includeFile))
                 {
-                    Debug.LogWarning(
-                        "CSI include-file not loaded: " + includeFile, this);
+                    ForceWarning(
+                        "CSI include-file not loaded (" + cachedFilename + ")", this);
                 }
             }
 
@@ -276,7 +298,7 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
             if ((!string.IsNullOrEmpty(includeCode)) &&
                 (!csharpEngine.ReadIncludeCode(includeCode)))
             {
-                Debug.LogWarning(
+                ForceWarning(
                     "CSI include-asset not loaded: " + (includeAssetName ?? string.Empty), this);
             }
 
@@ -341,11 +363,37 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
             {
                 // Include "UnityEngine.dll" or "UnityEngine-Debug.dll"
                 string filename = GetFullPathOfAssembly(unityEngineAssembly);
+#if !UNITY_2_6  // i.e., 3.0 and greater
+                if (!File.Exists(filename))
+                {
+                    try
+                    {
+                        filename = GetFullPathOfAssembly(typeof(int).Assembly);
+                        filename = Path.Combine(
+                            Path.GetDirectoryName(filename) ?? string.Empty,
+                            "UnityEngine.dll");
+                    }
+                    catch
+                    {
+                        filename = null;
+                    }
+                }
+#endif
+
                 if (File.Exists(filename))
                 {
                     csharpEngine.AddReference(filename);
                     csharpEngine.AddNamespace("UnityEngine");
                 }
+                else
+                {
+                    unityEngineAssembly = null;
+                }
+            }
+
+            if (unityEngineAssembly == null)
+            {
+                ForceWarning("UnityEngine is not referenced!");
             }
 
             if (this.unityEditorAssembly != null)
@@ -358,6 +406,16 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
                     csharpEngine.AddReference(filename);
                     csharpEngine.AddNamespace("UnityEditor");
                 }
+                else
+                {
+                    this.unityEditorAssembly = null;
+                }
+            }
+
+            if ((this.unityEditorAssembly == null) 
+                && Application.isEditor)
+            {
+                Debug.LogWarning("UnityEditor is not referenced!");
             }
 
             this.PromptForInput(PromptStart);
@@ -373,9 +431,44 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
         }
     }
 
+    private static void ForceWarning(string message)
+    {
+        ForceWarning(message, null /* context */);
+    }
+
+    private static void ForceWarning(string message, UnityEngine.Object context)
+    {
+        if (Application.isEditor)
+        {
+            if (context == null)
+            {
+                Debug.LogWarning(message);
+            }
+            else
+            {
+                Debug.LogWarning(message, context);
+            }
+        }
+        else
+        {
+            CSI.Utils.Print("Warning: " + message);
+        }
+    }
+
     private static string GetFullPathOfAssembly(Assembly assembly)
     {
-        string filename = new Uri(assembly.CodeBase).LocalPath;
+        if (assembly == null)
+        {
+            return null;
+        }
+
+        string codeBase = assembly.CodeBase;
+        if (string.IsNullOrEmpty(codeBase))
+        {
+            return null;
+        }
+
+        string filename = new Uri(codeBase).LocalPath;
         if (!File.Exists(filename))
         {
             string tempName = assembly.FullName ?? string.Empty;
@@ -1470,8 +1563,16 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
                         BindingFlags.Public | BindingFlags.Static;
                 const string EnvVarMonoPath = "MONO_PATH";
                 const string EnvVarCsiCompPath = "CSI_COMPILER_PATH";
+#if UNITY_2_6
                 const string CompilerDirectoryName = "MonoCompiler.framework";
-                const string CompilerProgramGuessPath = "Unity/Editor/Data/" + CompilerDirectoryName;
+                const string RuntimeDirectoryName = CompilerDirectoryName;
+#else  // i.e., 3.0 and greater
+                const string CompilerDirectoryName = "Mono/lib/mono/2.0";
+                const string RuntimeDirectoryName = "Mono/bin";
+#endif
+                const string DataRootProgramGuessPath = "Unity/Editor/Data/";
+                const string CompilerProgramGuessPath = DataRootProgramGuessPath + CompilerDirectoryName;
+                const string RuntimeProgramGuessPath = DataRootProgramGuessPath + RuntimeDirectoryName;
                 string mcsPath, monoPath;
                 string envValMonoPath =
                     Environment.GetEnvironmentVariable(EnvVarMonoPath);
@@ -1516,7 +1617,8 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
                     (!File.Exists(monoPath)))
                 {
                     string compilerPath =
-                        GetFullPathOfAssembly(Assembly.GetEntryAssembly());
+                        GetFullPathOfAssembly(Assembly.GetEntryAssembly()) ?? // Unity 2.6.1
+                        GetFullPathOfAssembly(typeof(System.Uri).Assembly);  // Unity 3.x
                     if (!string.IsNullOrEmpty(compilerPath))
                     {
                         compilerPath = Path.GetFullPath(compilerPath);
@@ -1561,12 +1663,14 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
                         {
                             searchPaths.Add(Path.Combine(
                                 programFilesRoot, CompilerProgramGuessPath));
+                            searchPaths.Add(Path.Combine(
+                                programFilesRoot, RuntimeProgramGuessPath));
                         }
                     }
 
                     if (!File.Exists(mcsPath))
                     {
-                        mcsPath = SearchForFullPath("gmcs", searchPaths, ".bat", ".exe");
+                        mcsPath = SearchForFullPath("gmcs", searchPaths, ".exe", ".bat");  // Must be EXE for Unity 3.x
                     }
 
                     if (!File.Exists(monoPath))
@@ -1619,22 +1723,23 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
                     }
                 }
 
+#if UNITY_2_6
                 // Ensure that the Mono-path environment-variable exists, 
-                // since the C# compiler needs this to find mscorlib.dll
+                // since the C# compiler needs this to find mscorlib.dll.
+                // NOTE: Since Unity 3.0.0, this is apparently no longer required.
                 if ((envSplitMonoPath.Length <= 0) ||
                     (/* single path that doesn't exist */ (envSplitMonoPath.Length == 1) &&
                         (!Directory.Exists(envSplitMonoPath[0]))))
                 {
-                    if (File.Exists(monoPath))
+                    if (File.Exists(mcsPath))
                     {
-                        envValMonoPath = Path.GetDirectoryName(
-                            monoPath);
+                        envValMonoPath = Path.GetDirectoryName(mcsPath);
                     }
 
                     if ((!Directory.Exists(envValMonoPath)) &&
-                        File.Exists(mcsPath))
+                        File.Exists(monoPath))
                     {
-                        envValMonoPath = Path.GetDirectoryName(mcsPath);
+                        envValMonoPath = Path.GetDirectoryName(monoPath);
                     }
 
                     if (!Directory.Exists(envValMonoPath))
@@ -1649,6 +1754,7 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
                             EnvVarMonoPath, envValMonoPath);
                     }
                 }
+#endif
             }
             catch (IOException)
             {
