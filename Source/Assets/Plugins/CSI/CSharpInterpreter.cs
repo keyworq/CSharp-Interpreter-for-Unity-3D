@@ -40,7 +40,7 @@ using UnityEngine;
 ////[ExecuteInEditMode]
 public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
 {
-    public const string Version = "0.8.24.3";
+    public const string Version = "0.8.24.4";
 
     private const string PromptStart = ">>>";
     private const string PromptExtra = "...";
@@ -1619,6 +1619,7 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
                     string compilerPath =
                         GetFullPathOfAssembly(Assembly.GetEntryAssembly()) ?? // Unity 2.6.1
                         GetFullPathOfAssembly(typeof(System.Uri).Assembly);  // Unity 3.x
+                    string runtimePath = compilerPath;
                     if (!string.IsNullOrEmpty(compilerPath))
                     {
                         compilerPath = Path.GetFullPath(compilerPath);
@@ -1641,6 +1642,35 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
                         while (Directory.Exists(compilerPath));
                     }
 
+                    if (string.Equals(
+                            CompilerDirectoryName, 
+                            RuntimeDirectoryName, 
+                            StringComparison.Ordinal))
+                    {
+                        runtimePath = null;
+                    }
+                    else if (!string.IsNullOrEmpty(runtimePath))
+                    {
+                        runtimePath = Path.GetFullPath(runtimePath);
+                        do
+                        {
+                            runtimePath = Path.GetDirectoryName(runtimePath);
+                            if (runtimePath == null)
+                            {
+                                break;
+                            }
+
+                            if (Directory.Exists(Path.Combine(
+                                    runtimePath, RuntimeDirectoryName)))
+                            {
+                                runtimePath = Path.Combine(
+                                    runtimePath, RuntimeDirectoryName);
+                                break;
+                            }
+                        }
+                        while (Directory.Exists(runtimePath));
+                    }
+
                     string envValCsiCompPath =
                         Environment.GetEnvironmentVariable(EnvVarCsiCompPath);
                     string[] envSplitCsiCompPath =
@@ -1650,6 +1680,7 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
                     searchPaths.Add(Directory.GetCurrentDirectory());
                     searchPaths.AddRange(envSplitCsiCompPath);
                     searchPaths.Add(compilerPath);
+                    searchPaths.Add(runtimePath);
                     searchPaths.AddRange(envSplitMonoPath);
                     foreach (string programFilesRoot in new string[]
                     {
