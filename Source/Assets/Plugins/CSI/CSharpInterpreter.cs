@@ -40,7 +40,7 @@ using UnityEngine;
 ////[ExecuteInEditMode]
 public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
 {
-    public const string Version = "0.8.24.4";
+    public const string Version = "0.8.24.5";
 
     private const string PromptStart = ">>>";
     private const string PromptExtra = "...";
@@ -124,7 +124,8 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
         return filename;
     }
 
-    public CSharpInterpreter()
+    //public CSharpInterpreter()
+    private void Awake()
     {
         this.Reset();
     }
