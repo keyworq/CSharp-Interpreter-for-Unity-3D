@@ -120,7 +120,7 @@ namespace CSI
             }
 
             // Cache the lookup result to speeds up subsequent lookups
-            // NOTE: Failed lookups are also cached by inserting null values, 
+            // NOTE: Failed lookups are also cached by inserting null values,
             //       which prevents additional lengthy repeats of the process
             lock (typeDictionaryLock)
             {
@@ -428,7 +428,7 @@ namespace CSI
         // here's the template used to generate the assemblies
         public const string Template =
              @"$USES$
-       class CsiChunk : CodeChunk { 
+       class CsiChunk : CodeChunk {
         public override void Go(Hashtable V) {
           $BODY$;
         }
@@ -441,7 +441,7 @@ namespace CSI
             {
                 CodeChunk chunk = (CodeChunk)a.CreateInstance("CsiChunk");
                 chunk.Go(table);
-                // we display the type and value of expressions.  The variable $_ is 
+                // we display the type and value of expressions.  The variable $_ is
                 // always set, which is useful if you want to save the result of the last
                 // calculation.
                 if (interp.returnsValue && DumpingValue)
@@ -490,7 +490,7 @@ namespace CSI
 
         public const string Template =
              @"$USES$
-       public class $CLASS$ : CsiFunctionContext { 
+       public class $CLASS$ : CsiFunctionContext {
          public $BODY$
       }";
 
@@ -591,10 +591,10 @@ namespace CSI
             }
             else
             {
-                System.Collections.Generic.Dictionary<string, string> providerOptions = 
+                System.Collections.Generic.Dictionary<string, string> providerOptions =
                     new System.Collections.Generic.Dictionary<string, string>();
                 providerOptions.Add(
-                    "CompilerVersion", 
+                    "CompilerVersion",
                     (Environment.Version < new Version("4.0.0.0")) ? "v3.5" : "v4.0");
                 prov = (CSharpCodeProvider)constructorInfo.Invoke(new object[] { providerOptions });
             }
@@ -774,8 +774,8 @@ namespace CSI
             bool isObject = (pubType == typeof(object));
             if (isObject)
             {
-                // Rather try to find a more specific interface-type 
-                // instead, although we remember that this is an object and 
+                // Rather try to find a more specific interface-type
+                // instead, although we remember that this is an object and
                 // revert back to that type if no public interface is found
                 pubType = null;
             }
@@ -1097,7 +1097,7 @@ namespace CSI
                                 break;
                             }
                         }
-                        
+
                         bool secondErrorIsTooCommon = false;
                         foreach (CompilerError err in cr2.Errors)
                         {
@@ -1108,9 +1108,9 @@ namespace CSI
                                 break;
                             }
                         }
-                        
-                        // Usually show the second error, unless it is not very 
-                        // informative and the first error is unlikely to have 
+
+                        // Usually show the second error, unless it is not very
+                        // informative and the first error is unlikely to have
                         // been caused by our editing of the expression string
                         if ((!secondErrorIsTooCommon) || (firstErrorIsTypeConversion))
                         {
@@ -1166,8 +1166,8 @@ namespace CSI
             foreach (CompilerError err in cr.Errors)
             {
                 sbErr.AppendFormat(
-                    "{0}{1}\n", 
-                    (err.ErrorText ?? string.Empty).Trim(), 
+                    "{0}{1}\n",
+                    (err.ErrorText ?? string.Empty).Trim(),
                     (string.IsNullOrEmpty(err.ErrorNumber) ? string.Empty : (" [" + err.ErrorNumber + "]")));
             }
             Utils.Print(sbErr.ToString());

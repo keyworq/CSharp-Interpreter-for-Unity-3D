@@ -308,9 +308,9 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
                 typeof(UnityEngine.GameObject).Assembly);
             if (File.Exists(fullAssemblyPath))
             {
-                // Adds "UnityEngine.dll", or rather "UnityEngine-Debug.dll", for the 
+                // Adds "UnityEngine.dll", or rather "UnityEngine-Debug.dll", for the
                 // Editor, which is located in the "...\Unity\Editor\Data\lib" directory.
-                // However, this does not work for the Standalone Windows Player, which 
+                // However, this does not work for the Standalone Windows Player, which
                 // uses the same mechanism for UnityEngine as for UnityEditor (below).
                 unityEngineAssembly = typeof(UnityEngine.GameObject).Assembly;
             }
@@ -413,7 +413,7 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
                 }
             }
 
-            if ((this.unityEditorAssembly == null) 
+            if ((this.unityEditorAssembly == null)
                 && Application.isEditor)
             {
                 Debug.LogWarning("UnityEditor is not referenced!");
@@ -894,7 +894,7 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
             return true;
         }
 
-        // For Component objects, select the containing game-object 
+        // For Component objects, select the containing game-object
         // instead, so that the items would be highlighted in the editor
         Component component;
         GameObject gameObject;
@@ -991,7 +991,7 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
         if ((csharpEngine == null) ||
             (!object.ReferenceEquals(CSI.Interpreter.Console, this)))
         {
-            // Detect and re-initialize after a rebuild 
+            // Detect and re-initialize after a rebuild
             // or when the component has been re-enabled
             if (!this.Reinitialize())
             {
@@ -1354,7 +1354,7 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
         string memberNameForDetail = null;
         if (memberNames.Length == 1)
         {
-            // Incorporate the single found entry's name into the 
+            // Incorporate the single found entry's name into the
             // input text, which provides some kind of auto-completion
             memberNameForDetail = memberNames[0];
             if (seachTextStartIndex < 0)
@@ -1554,9 +1554,9 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
                     return;
                 }
 
-                // This begins a hack to bypass the static constructor of 
-                // Mono.CSharp.CSharpCodeCompiler and initialize that data 
-                // type in an alternative way for Unity 3D (v.2.6.1); it 
+                // This begins a hack to bypass the static constructor of
+                // Mono.CSharp.CSharpCodeCompiler and initialize that data
+                // type in an alternative way for Unity 3D (v.2.6.1); it
                 // attempts to locate the Mono and MCS executables correctly
                 const BindingFlags StaticNonPublicBindingFlags =
                         BindingFlags.NonPublic | BindingFlags.Static;
@@ -1597,12 +1597,12 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
                     return;
                 }
 
-                // To bypass the problematic initialization 
+                // To bypass the problematic initialization
                 // code, pretend we're running of Unix
                 directorySeparatorCharField.SetValue(null, '/');
                 try
                 {
-                    // Now access a static member to ensure that 
+                    // Now access a static member to ensure that
                     // the static constructor has been executed
                     mcsPath = (string)mcsPathField.GetValue(null);
                     monoPath = (string)monoPathField.GetValue(null);
@@ -1644,8 +1644,8 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
                     }
 
                     if (string.Equals(
-                            CompilerDirectoryName, 
-                            RuntimeDirectoryName, 
+                            CompilerDirectoryName,
+                            RuntimeDirectoryName,
                             StringComparison.Ordinal))
                     {
                         runtimePath = null;
@@ -1756,7 +1756,7 @@ public sealed class CSharpInterpreter : MonoBehaviour, CSI.IConsole
                 }
 
 #if UNITY_2_6
-                // Ensure that the Mono-path environment-variable exists, 
+                // Ensure that the Mono-path environment-variable exists,
                 // since the C# compiler needs this to find mscorlib.dll.
                 // NOTE: Since Unity 3.0.0, this is apparently no longer required.
                 if ((envSplitMonoPath.Length <= 0) ||
